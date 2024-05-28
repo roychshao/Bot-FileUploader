@@ -10,7 +10,7 @@
 
 ### API
 
-(The api accept only one file within a request)
+(The api accept only one file within a request, and only PDF,PNG,JPG files are accepted.)
 
 * Endpoint: POST https://<hostname>/api/upload
 * Content-Type: multipart/form-data

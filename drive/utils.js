@@ -6,15 +6,17 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from "url";
 import util from 'util';
+
 /*
  * Clamscan scan file for security issue
  */
-
-// Build on init
 const mkdir = util.promisify(fs.mkdir);
+const writeFile = util.promisify(fs.writeFile);
 mkdir('clamscan').catch(() => {});
 mkdir('clamscan/infected').catch(() => {});
+writeFile('scan.log', '').catch(() => {});
 
+// Build on init
 const ClamScan = new NodeClam().init({
   remove_infected: true,
   quarantineInfected: './clamscan/infected/',
@@ -22,57 +24,74 @@ const ClamScan = new NodeClam().init({
   debugMode: true
 });
 
+const checkFileType = async (req) => {
+  return new Promise((resolve, reject) => {
+    if (req.file.mimeType !== 'pdf' ||
+      req.file.mimeType !== 'png' ||
+      req.file.mimeType !== 'jpg') {
+      console.error('unsupported file type:', req.file.mimeType);
+      reject(new Error('unsupported file type.'));
+    } else {
+      resolve();
+    }
+  })
+}
+
 const scanFile = async (req) => {
   return new Promise( async (resolve, reject) => {
-    try {
-      const file = req.file;
-      const __filename = fileURLToPath(import.meta.url);
-      const __dirname = path.dirname(__filename);
-      const tempFilePath = path.join(__dirname, file.originalname);
 
-      // create temporary file
-      fs.writeFile(tempFilePath, file.buffer, async (err) => {
-        
-        if (err) {
-          reject(err);
-        }
-      
-        fs.chmod(tempFilePath, 777, (err) => {
+    // check file type
+    await checkFileType(req).catch(err => {
+      reject(err);
+    }).then(() => {
+
+      try {
+        const file = req.file;
+        const __filename = fileURLToPath(import.meta.url);
+        const __dirname = path.dirname(__filename);
+        const tempFilePath = path.join(__dirname, file.originalname);
+
+        // create temporary file
+        fs.writeFile(tempFilePath, file.buffer, async (err) => {
 
           if (err) {
             reject(err);
           }
-        })
 
-        // scan the file
-        await ClamScan.then( async clamscan => {
-          clamscan.scanFile(tempFilePath, async (err, safe) => {
-
-            // delete the temporary file
-            fs.unlinkSync(tempFilePath, (err) => {
-              if (err) {
-                reject(err);
-              }
-            });
+          fs.chmod(tempFilePath, 777, (err) => {
 
             if (err) {
-              console.error("Error scanning file:", err);
-              reject('scan failed.');
-            } else if (!safe) {
-              console.log("File is infected");
-              reject('file infected.');
-            } else {
-              console.log("File is clean");
-              resolve();
+              reject(err);
             }
           })
-        })
-      });
 
-    } catch (err) {
-      console.error(err.message);
-      reject(err);
-    }
+          // scan the file
+          await ClamScan.then( async clamscan => {
+            clamscan.scanFile(tempFilePath, async (err, safe) => {
+
+              // delete the temporary file
+              fs.unlinkSync(tempFilePath, (err) => {
+                if (err) {
+                  reject(err);
+                }
+              })
+              if (err) {
+                console.error("Error scanning file:", err);
+                reject(new Error('scan failed.'));
+              } else if (!safe) {
+                console.log("File is infected");
+                reject(new Error('file infected.'));
+              } else {
+                resolve();
+              }
+            });
+          })
+        })
+      } catch (err) {
+        console.error(err.message);
+        reject(err);
+      }
+    });
   })
 }
 
@@ -149,11 +168,12 @@ const uploadFile = async (req) => {
 
 export const scanFileSVC = async (req, res, next) => {
   await scanFile(req).then(() => {
-    console.log("scan passed.");
     next();
   })
   .catch(err => {
-    if (err.message === 'scan failed.') {
+    if (err.message === 'unsupported file type.') {
+      res.status(403).send('unsupported file type, only PDF, PNG and JPG are allowed.');
+    } else if (err.message === 'scan failed.') {
       res.status(500).send({ error: err.message });
     } else if (err.message === 'file infected.') {
       res.status(403).send('malware/virus are scanned, the request is denied.');
