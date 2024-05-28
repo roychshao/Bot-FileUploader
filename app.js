@@ -5,6 +5,7 @@ import helmet from 'helmet';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from "url";
+import { VerifyDiscordRequest } from './discord/utils.js';
 
 // import routers
 import uploadRouter from './routes/upload.js';

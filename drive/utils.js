@@ -1,7 +1,86 @@
 import { google } from 'googleapis';
 import streamifier from 'streamifier';
 import key from './../serviceAccount-secret-key.json' assert { type: 'json' };
+import NodeClam from 'clamscan';
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from "url";
+import util from 'util';
+/*
+ * Clamscan scan file for security issue
+ */
 
+// Build on init
+const mkdir = util.promisify(fs.mkdir);
+mkdir('clamscan').catch(() => {});
+mkdir('clamscan/infected').catch(() => {});
+
+const ClamScan = new NodeClam().init({
+  remove_infected: true,
+  quarantineInfected: './clamscan/infected/',
+  scanLog: './clamscan/scan.log',
+  debugMode: true
+});
+
+const scanFile = async (req) => {
+  return new Promise( async (resolve, reject) => {
+    try {
+      const file = req.file;
+      const __filename = fileURLToPath(import.meta.url);
+      const __dirname = path.dirname(__filename);
+      const tempFilePath = path.join(__dirname, file.originalname);
+
+      // create temporary file
+      fs.writeFile(tempFilePath, file.buffer, async (err) => {
+        
+        if (err) {
+          reject(err);
+        }
+      
+        fs.chmod(tempFilePath, 777, (err) => {
+
+          if (err) {
+            reject(err);
+          }
+        })
+
+        // scan the file
+        await ClamScan.then( async clamscan => {
+          clamscan.scanFile(tempFilePath, async (err, safe) => {
+
+            // delete the temporary file
+            fs.unlinkSync(tempFilePath, (err) => {
+              if (err) {
+                reject(err);
+              }
+            });
+
+            if (err) {
+              console.error("Error scanning file:", err);
+              reject('scan failed.');
+            } else if (!safe) {
+              console.log("File is infected");
+              reject('file infected.');
+            } else {
+              console.log("File is clean");
+              resolve();
+            }
+          })
+        })
+      });
+
+    } catch (err) {
+      console.error(err.message);
+      reject(err);
+    }
+  })
+}
+
+
+
+/*
+ * Google Drive upload files
+ */
 const drive = google.drive('v3');
 
 const jwtClient = new google.auth.JWT(
@@ -21,7 +100,7 @@ const uploadFile = async (req) => {
         return;
       }
 
-      
+
       const fileMetadata = {
         name: req.file.originalname,
       };
@@ -65,6 +144,22 @@ const uploadFile = async (req) => {
           }
         })
     });
+  })
+}
+
+export const scanFileSVC = async (req, res, next) => {
+  await scanFile(req).then(() => {
+    console.log("scan passed.");
+    next();
+  })
+  .catch(err => {
+    if (err.message === 'scan failed.') {
+      res.status(500).send({ error: err.message });
+    } else if (err.message === 'file infected.') {
+      res.status(403).send('malware/virus are scanned, the request is denied.');
+    } else {
+      res.status(500).send(err.message);
+    }
   })
 }
 

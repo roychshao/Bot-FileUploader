@@ -24,12 +24,12 @@ export const sendReview = async (req, res) => {
     
     // handle new reactions
     collector.on('collect', (reaction, user) => {
-      console.log(`Collected ${reaction.emoji.name} from ${user.tag}`);
+      console.log(`Collected ${reaction.emoji.name} from ${user.tag} to ${reaction.message.id}`);
     });
     
     // handle remove reactions
     collector.on('dispose', (reaction, user) => {
-      console.log(`${user.tag} disposed their ${reaction.emoji.name}`);
+      console.log(`${user.tag} disposed their ${reaction.emoji.name} to ${reaction.message.id}`);
     });
   })
   .catch(err => {

@@ -2,3 +2,5 @@
 serviceAccount-secret-key.json
 .env
 access.log
+scan.log
+/infected
