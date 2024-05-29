@@ -26,10 +26,10 @@ const ClamScan = new NodeClam().init({
 
 const checkFileType = async (req) => {
   return new Promise((resolve, reject) => {
-    if (req.file.mimeType !== 'pdf' ||
-      req.file.mimeType !== 'png' ||
-      req.file.mimeType !== 'jpg') {
-      console.error('unsupported file type:', req.file.mimeType);
+    if (req.file.mimetype !== 'application/pdf' &&
+      req.file.mimetype !== 'image/png' &&
+      req.file.mimetype !== 'image/jpeg') {
+      console.error('unsupported file type:', req.file.mimetype);
       reject(new Error('unsupported file type.'));
     } else {
       resolve();
@@ -43,6 +43,7 @@ const scanFile = async (req) => {
     // check file type
     await checkFileType(req).catch(err => {
       reject(err);
+      throw err;
     }).then(() => {
 
       try {
@@ -91,7 +92,9 @@ const scanFile = async (req) => {
         console.error(err.message);
         reject(err);
       }
-    });
+    }).catch(err => {
+      reject(err);
+    })
   })
 }
 
@@ -125,7 +128,7 @@ const uploadFile = async (req) => {
       };
 
       const media = {
-        mimeType: req.file.mimeType,
+        mimeType: req.file.mimetype,
         body: streamifier.createReadStream(req.file.buffer),
       };
 

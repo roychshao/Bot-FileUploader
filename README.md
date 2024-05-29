@@ -4,9 +4,11 @@
 
 ### Process
 1. scan the file for security concerns  
-2. upload it to google drive (service account)  
+2. save the file in the server
+3. upload it to google drive (service account) 
 3. send the file URL to discord and monitoring the voting condition of the file  
-4. if the file pass the review, store it into the database of ourselves, and frontend can get the files with RESTful api.
+4. if the file doesn't pass the review, deleting it from the server
+5. open an RESTful API
 
 ### API
 
@@ -15,17 +17,35 @@
 * Endpoint: POST https://<hostname>/api/upload
 * Content-Type: multipart/form-data
 * Data needed:
-```json
+```
 req.body: {
-    file: <file>  
+    file: <file>,
+    uploader: string,
+    semester: string,
+    courseTitle: string,
+    professor: string
 }
 ```
-* Accepted mimetype: .pdf, .png, .jpg
+* Accepted mimetype: .pdf, .png, .jpg/jpeg
 
 ### Start
 clone this repository
 ```zsh
 git clone https://github.com/roychshao/Bot-FileUploader.git
+```
+
+you have to have .env file in the root directory
+```
+APP_ID=*****
+DISCORD_TOKEN=*****
+PUBLIC_KEY=*****
+CHANNEL_ID=*****
+PORT=3000
+```
+
+secret-key file for google drive api
+```
+serviceAccount-secret-key.json
 ```
 
 install clamav and clamav-daemon

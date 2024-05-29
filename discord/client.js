@@ -4,12 +4,18 @@ import { Client } from 'discord.js';
  * 1. 建立投票通過/不通過規則
  * 2. 有效投票時間長度
  * 3. 有效表情符號
+ * 4. 建立message id / voting hash table
+ * 5. 顯示fileUploader, semester, courseTitle, professor
+ * 6. 審核結束後刪除google drive上的file 無論通過與否
+ * 7. 不通過檔案存ebg上刪除
  */
 
 const client = new Client({ intents: ['Guilds', 'GuildMessages', 'GuildMessageReactions'] });
 client.login(process.env.DISCORD_TOKEN);
 
 export const sendReview = async (req, res) => {
+
+  // const { uploader, semester, courseTitle, professor } = req.body;
 
   const channel = client.channels.cache.get(process.env.CHANNEL_ID);
 
