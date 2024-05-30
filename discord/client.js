@@ -4,17 +4,11 @@ import { deleteFile } from '../drive/utils.js';
 /* TODO:
  * 1. 顯示fileUploader, semester, courseTitle, professor
  * 2. 不通過檔案從ebg上刪除
- * 3. 設定threshold
+ * 3. threshold policy
  */
 
-/*
- * BUG:
- * 1. 若collector不執行重啟,所有的message將一直被監聽,被放在RAM中,因無法單獨移除某些message的監聽
- */
-
-const goodThreshold = 1;
+const goodThreshold = 2;
 const badThreshold = 1;
-const ignoredMessages = [];
 
 
 const deletePhysically = () => {
@@ -38,32 +32,29 @@ export const sendReview = async (req, res) => {
   await channel.send(`新增考古題 - ${req.file.originalname}: `+ fileURL).then(message => {
     // collect only these two emoji for voting.
     const filter = (reaction) => reaction.emoji.name === '👍' || reaction.emoji.name === '👎';
-    const collector = message.createReactionCollector({ filter, time: 2147483647, dispose: true, max: 2147483647 });
-    
+    let collector = message.createReactionCollector({ filter, time: 2147483647, dispose: true, max: 2147483647 });
+    let hasResult = false;
+
     // handle new reactions
     collector.on('collect', (reaction, user) => {
-
-      // ignore messages in the ignoredMessages list.
-      if (ignoredMessages.includes(reaction.message.id)) {
-        return;
-      }
 
       console.log(`Collected ${reaction.emoji.name} from ${user.tag} to ${reaction.message.id}`);
       if (reaction.emoji.name === '👍') {
         reaction.fetch().then(fetchedReaction => {
+          
           // if the message passed the review.
           if (fetchedReaction.count >= goodThreshold) {
             console.log(`Message ${reaction.message.id} has passed the review, stop monitoring this message.`);
-            ignoredMessages.push(reaction.message.id);
-
+            hasResult = true;
           }
+
         });
       } else if (reaction.emoji.name === '👎') {
         reaction.fetch().then(fetchedReaction => {
           // if the message doesn't pass the review.
           if (fetchedReaction.count >= badThreshold) {
             console.log(`Message ${reaction.message.id} doesn't pass the review.`);
-            ignoredMessages.push(reaction.message.id);
+            hasResult = true;
 
             // delete the file on physical server.
             deletePhysically();
@@ -71,24 +62,23 @@ export const sendReview = async (req, res) => {
         });
       }
 
-      // delete file on google drive.
-      deleteFile(fileId, (err) => {
-        if (err) {
-          console.error(err.message);
-          reject(new Error('Failed to delete message on google drive.'));
-        }
-      })
-
+      if (hasResult) {
+        // destroy collector
+        collector.stop();
+        collector = null;
+        
+        // delete file on google drive.
+        deleteFile(fileId, (err) => {
+          if (err) {
+            console.error(err.message);
+            res.status(500).send(`Failed to delete file on google drive, error: ${err.message}`)
+          }
+        })
+      } 
     });
-    
+     
     // handle remove reactions
-    collector.on('dispose', (reaction, user) => {
-      
-      // ignore messages in the ignoredMessages list.
-      if (ignoredMessages.includes(reaction.message.id)) {
-        return;
-      }
-      
+    collector.on('dispose', (reaction, user) => { 
       console.log(`${user.tag} disposed their ${reaction.emoji.name} to ${reaction.message.id}`);
     });
   })

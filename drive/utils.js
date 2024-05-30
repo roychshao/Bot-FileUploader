@@ -14,6 +14,7 @@ const mkdir = util.promisify(fs.mkdir);
 const writeFile = util.promisify(fs.writeFile);
 mkdir('clamscan').catch(() => {});
 mkdir('clamscan/infected').catch(() => {});
+mkdir('drive/receivedFiles').catch(() => {});
 writeFile('scan.log', '').catch(() => {});
 
 // Build on init
@@ -50,7 +51,7 @@ const scanFile = async (req) => {
         const file = req.file;
         const __filename = fileURLToPath(import.meta.url);
         const __dirname = path.dirname(__filename);
-        const tempFilePath = path.join(__dirname, file.originalname);
+        const tempFilePath = path.join(__dirname, 'receivedFiles', file.originalname);
 
         // create temporary file
         fs.writeFile(tempFilePath, file.buffer, async (err) => {
@@ -70,12 +71,6 @@ const scanFile = async (req) => {
           await ClamScan.then( async clamscan => {
             clamscan.scanFile(tempFilePath, async (err, safe) => {
 
-              // delete the temporary file
-              fs.unlinkSync(tempFilePath, (err) => {
-                if (err) {
-                  reject(err);
-                }
-              })
               if (err) {
                 console.error("Error scanning file:", err);
                 reject(new Error('scan failed.'));
@@ -167,11 +162,6 @@ const uploadFile = async (req) => {
         })
     });
   })
-}
-
-export const downloadFile = () => {
-  // TODO:
-  // download file from google drive with specific fileId.
 }
 
 export const deleteFile = (fileId, callback) => {
