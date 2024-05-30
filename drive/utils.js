@@ -21,7 +21,7 @@ const ClamScan = new NodeClam().init({
   remove_infected: true,
   quarantineInfected: './clamscan/infected/',
   scanLog: './clamscan/scan.log',
-  debugMode: true
+  debugMode: true,
 });
 
 const checkFileType = async (req) => {
@@ -160,13 +160,30 @@ const uploadFile = async (req) => {
                 if (err) {
                   reject(err);
                 } else {
-                  resolve(fileURL);
+                  resolve({ fileId: file.data.id, fileURL: fileURL });
                 }
               })
           }
         })
     });
   })
+}
+
+export const downloadFile = () => {
+  // TODO:
+  // download file from google drive with specific fileId.
+}
+
+export const deleteFile = (fileId, callback) => {
+  drive.files.delete({
+    auth: jwtClient,
+    fileId: fileId
+  }, (err) => {
+      if (err) {
+        callback(err);
+      }
+      callback();
+    })
 }
 
 export const scanFileSVC = async (req, res, next) => {
@@ -187,8 +204,9 @@ export const scanFileSVC = async (req, res, next) => {
 }
 
 export const uploadFileSVC = async (req, res, next) => {
-  await uploadFile(req).then((fileURL) => {
-    req.fileURL = fileURL;
+  await uploadFile(req).then((addons) => {
+    req.body.fileId = addons.fileId;
+    req.body.fileURL = addons.fileURL;
     next();
   }).catch(err => {
     res.status(500).send({ error: err.message });
