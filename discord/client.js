@@ -1,26 +1,20 @@
 import { Client } from 'discord.js';
-import { deleteFile } from '../drive/utils.js';
+import { deleteDriveFile, deletePhysicalFile } from '../drive/utils.js';
 
 /* TODO:
  * 1. 顯示fileUploader, semester, courseTitle, professor
- * 2. 不通過檔案從ebg上刪除
- * 3. threshold policy
+ * 2. threshold policy
  */
 
 const goodThreshold = 2;
 const badThreshold = 1;
-
-
-const deletePhysically = () => {
-  // TODO: delete the file physically when the review doesn't pass.
-}
 
 const client = new Client({ intents: ['Guilds', 'GuildMessages', 'GuildMessageReactions'] });
 client.login(process.env.DISCORD_TOKEN);
 
 export const sendReview = async (req, res) => {
 
-  const { fileId, fileURL } = req.body;
+  const { fileId, fileURL, filePath } = req.body;
   // const { uploader, semester, courseTitle, professor } = req.body;
 
   const channel = client.channels.cache.get(process.env.CHANNEL_ID);
@@ -56,8 +50,12 @@ export const sendReview = async (req, res) => {
             console.log(`Message ${reaction.message.id} doesn't pass the review.`);
             hasResult = true;
 
-            // delete the file on physical server.
-            deletePhysically();
+            // delete the file on physical server. 
+            deletePhysicalFile(filePath, (err) => {
+              if (err) {
+                console.error("Delete Physical File Error:", err);
+              }
+            });
           }
         });
       }
@@ -68,7 +66,7 @@ export const sendReview = async (req, res) => {
         collector = null;
         
         // delete file on google drive.
-        deleteFile(fileId, (err) => {
+        deleteDriveFile(fileId, (err) => {
           if (err) {
             console.error(err.message);
             res.status(500).send(`Failed to delete file on google drive, error: ${err.message}`)

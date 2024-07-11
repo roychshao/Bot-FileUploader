@@ -10,11 +10,13 @@
 4. if the file doesn't pass the review, deleting it from the server
 5. open an RESTful API
 
+* files stored in ./drive/receivedFiles/
+
 ### API
 
 (The api accept only one file within a request, and only PDF,PNG,JPG files are accepted.)
 
-* Endpoint: POST https://<hostname>/api/upload
+* Endpoint: POST https://hostname/api/upload
 * Content-Type: multipart/form-data
 * Data needed:
 ```

@@ -6,6 +6,7 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from "url";
 import util from 'util';
+import { v4 as uuidv4 } from 'uuid';
 
 /*
  * Clamscan scan file for security issue
@@ -51,16 +52,15 @@ const scanFile = async (req) => {
         const file = req.file;
         const __filename = fileURLToPath(import.meta.url);
         const __dirname = path.dirname(__filename);
-        const tempFilePath = path.join(__dirname, 'receivedFiles', file.originalname);
-
-        // create temporary file
+        // TODO: categorize path by semester, courseTitle, professor
+        const tempFilePath = path.join(__dirname, 'receivedFiles', uuidv4() + '-' + file.originalname);
+ 
+        // create physical file
         fs.writeFile(tempFilePath, file.buffer, async (err) => {
-
           if (err) {
             reject(err);
           }
-
-          fs.chmod(tempFilePath, 777, (err) => {
+          fs.chmod(tempFilePath, 770, (err) => {
 
             if (err) {
               reject(err);
@@ -73,12 +73,22 @@ const scanFile = async (req) => {
 
               if (err) {
                 console.error("Error scanning file:", err);
+                deletePhysicalFile(tempFilePath, (err) => {
+                  if (err) {
+                    console.error("Delete Physical File Error:", err);
+                  }
+                });
                 reject(new Error('scan failed.'));
               } else if (!safe) {
                 console.log("File is infected");
+                deletePhysicalFile(tempFilePath, (err) => {
+                  if (err) {
+                    console.error("Delete Physical File Error:", err);
+                  }
+                });
                 reject(new Error('file infected.'));
               } else {
-                resolve();
+                resolve({ filePath: tempFilePath });
               }
             });
           })
@@ -164,7 +174,17 @@ const uploadFile = async (req) => {
   })
 }
 
-export const deleteFile = (fileId, callback) => {
+// delete physical file
+export const deletePhysicalFile = (filePath, callback) => {
+  fs.rm(filePath, (err) => {
+    if (err) {
+      callback(err);
+    }
+    callback();
+  });
+}
+
+export const deleteDriveFile = (fileId, callback) => {
   drive.files.delete({
     auth: jwtClient,
     fileId: fileId
@@ -177,7 +197,8 @@ export const deleteFile = (fileId, callback) => {
 }
 
 export const scanFileSVC = async (req, res, next) => {
-  await scanFile(req).then(() => {
+  await scanFile(req).then((addons) => {
+    req.body.filePath = addons.filePath;
     next();
   })
   .catch(err => {
