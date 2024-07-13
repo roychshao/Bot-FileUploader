@@ -1,6 +1,7 @@
 import express from 'express';
 import multer from 'multer';
-import { scanFileSVC, uploadFileSVC } from '../drive/utils.js';
+import { scanFileSVC } from '../drive/utils.js';
+import { uploadFileSVC } from '../drive/driveURL.js';
 import { sendReview } from '../discord/client.js';
 
 const router = express.Router();

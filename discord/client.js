@@ -1,5 +1,6 @@
 import { Client } from 'discord.js';
-import { deleteDriveFile, deletePhysicalFile } from '../drive/utils.js';
+import { deleteDriveFile } from '../drive/driveURL.js';
+import { deletePhysicalFile } from '../drive/utils.js';
 
 /* TODO:
  * 1. 顯示fileUploader, semester, courseTitle, professor
