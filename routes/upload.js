@@ -7,6 +7,6 @@ import { sendReview } from '../discord/client.js';
 const router = express.Router();
 const uploader = multer({ storage: multer.memoryStorage() });
 
-router.post('/', uploader.single('file'), scanFileSVC, uploadFileSVC, sendReview);
+router.post('/', uploader.array('files'), scanFileSVC, uploadFileSVC, sendReview);
 
 export default router;

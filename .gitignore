@@ -4,4 +4,5 @@ serviceAccount-secret-key.json
 access.log
 scan.log
 /infected
-/drive/receivedFiles
+/drive/passedFiles
+/drive/failedFiles

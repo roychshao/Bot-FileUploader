@@ -52,7 +52,7 @@ export const sendReview = async (req, res) => {
             hasResult = true;
 
             // delete the file on physical server. 
-            deletePhysicalFile(filePath, (err) => {
+            deletePhysicalFile(filePath, req.file.originalname, (err) => {
               if (err) {
                 console.error("Delete Physical File Error:", err);
               }

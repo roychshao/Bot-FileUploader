@@ -12,6 +12,7 @@
   "author": "roychshao",
   "license": "ISC",
   "dependencies": {
+    "archiver": "^7.0.1",
     "discord-interactions": "^3.4.0",
     "discord.js": "^14.15.2",
     "dotenv": "^16.4.5",
