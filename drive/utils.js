@@ -116,7 +116,6 @@ const compressFiles = async (req) => {
 
     req.files.forEach(file => {
       if (file) {
-        console.log(file);
         archive.append(file.buffer, { name: file.originalname });
       }
     })
@@ -160,20 +159,32 @@ export const deletePhysicalFile = (filePath, fileName ,callback) => {
 
 export const scanFileSVC = async (req, res, next) => {
 
-  await checkFileType(req).then( async () => {  
+  await checkFileType(req).then( async () => {
+
+    // if some text is given, add a txt file into zip
+    if (req.body.text) {
+      let buffer = Buffer.from(req.body.text, 'utf-8');
+      let file = {
+        buffer: buffer,
+        originalname: 'manual.txt',
+        mimetype: 'text/plain'
+      };
+      req.files.push(file);
+    }
+
     // if there are more than one files, compress it.
     if (req.files.length > 1) {
       if (req.body.zipName === undefined) {
-        res.status(400).send({
-          success: false,
+        throw {
+          status: 400,
           message: 'zipName argument is missing.'
-        });
+        };
       } else {
         await compressFiles(req).catch(err => {
-          res.status(500).send({
-            success: false,
+          throw {
+            status: 500,
             message: 'compress failed: ' + err.message
-          });
+          };
         });
         req.files = null;
       }
@@ -182,7 +193,6 @@ export const scanFileSVC = async (req, res, next) => {
       req.files = null;
     }
 
-    console.log("go scan");
     // scan file
     await scanFile(req).then((addons) => {
       req.body.filePath = addons.filePath;
@@ -190,24 +200,24 @@ export const scanFileSVC = async (req, res, next) => {
     })
     .catch(err => {
       if (err.message === 'scan failed.') {
-        res.status(500).send({
-          success: false,
+        throw {
+          status: 500,
           message: 'scan failed: ' + err.message
-        });
+        }
       } else if (err.message === 'file infected.') {
-        res.status(403).send({
-          success: false,
+        throw {
+          status: 403,
           message: 'malware/virus are scanned, the request is denied.'
-        });
+        };
       } else {
-        res.status(500).send({
-          success: false,
+        throw {
+          status: 500,
           message: err.message
-        });
+        };
       }
     })
   }).catch((err) => {
-    res.status(403).send({
+    res.status(err.status).send({
       success: false,
       message: err.message
     });
