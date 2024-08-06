@@ -15,7 +15,7 @@ client.login(process.env.DISCORD_TOKEN);
 
 export const sendReview = async (req, res) => {
 
-  const { fileId, fileURL, filePath } = req.body;
+  const { fileId, fileURL, filePath, compressedFileName } = req.body;
   // const { uploader, semester, courseTitle, professor } = req.body;
 
   const channel = client.channels.cache.get(process.env.CHANNEL_ID);
@@ -24,7 +24,7 @@ export const sendReview = async (req, res) => {
     return res.status(400).send('Channel not found');
   }
 
-  await channel.send(`新增考古題 - ${req.file.originalname}: `+ fileURL).then(message => {
+  await channel.send(`新增考古題 - ${req.file.originalname}: ` + fileURL).then(message => {
     // collect only these two emoji for voting.
     const filter = (reaction) => reaction.emoji.name === '👍' || reaction.emoji.name === '👎';
     let collector = message.createReactionCollector({ filter, time: 2147483647, dispose: true, max: 2147483647 });
@@ -36,7 +36,7 @@ export const sendReview = async (req, res) => {
       console.log(`Collected ${reaction.emoji.name} from ${user.tag} to ${reaction.message.id}`);
       if (reaction.emoji.name === '👍') {
         reaction.fetch().then(fetchedReaction => {
-          
+
           // if the message passed the review.
           if (fetchedReaction.count >= goodThreshold) {
             console.log(`Message ${reaction.message.id} has passed the review, stop monitoring this message.`);
@@ -52,7 +52,7 @@ export const sendReview = async (req, res) => {
             hasResult = true;
 
             // delete the file on physical server. 
-            deletePhysicalFile(filePath, req.file.originalname, (err) => {
+            deletePhysicalFile(filePath, compressedFileName, (err) => {
               if (err) {
                 console.error("Delete Physical File Error:", err);
               }
@@ -65,7 +65,7 @@ export const sendReview = async (req, res) => {
         // destroy collector
         collector.stop();
         collector = null;
-        
+
         // delete file on google drive.
         deleteDriveFile(fileId, (err) => {
           if (err) {
@@ -73,16 +73,16 @@ export const sendReview = async (req, res) => {
             res.status(500).send(`Failed to delete file on google drive, error: ${err.message}`)
           }
         })
-      } 
+      }
     });
-     
+
     // handle remove reactions
-    collector.on('dispose', (reaction, user) => { 
+    collector.on('dispose', (reaction, user) => {
       console.log(`${user.tag} disposed their ${reaction.emoji.name} to ${reaction.message.id}`);
     });
   })
-  .catch(err => {
-    res.status(500).send(`Failed to send message, error: ${err.message}`);
-  });
+    .catch(err => {
+      res.status(500).send(`Failed to send message, error: ${err.message}`);
+    });
   res.status(200).send('Uploaded to discord.');
 }

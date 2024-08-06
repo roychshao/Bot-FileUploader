@@ -1,6 +1,7 @@
 /node_modules
 serviceAccount-secret-key.json
 .env
+.api
 access.log
 scan.log
 /infected

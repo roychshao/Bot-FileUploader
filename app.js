@@ -25,7 +25,7 @@ app.use(morgan("combined", { stream: accessLogStream }));
 app.use(helmet());
 
 // discord verification
-app.use(express.json( { verify: VerifyDiscordRequest() } ));
+app.use(express.json({ verify: VerifyDiscordRequest() }));
 
 // routes
 app.use("/api/upload", uploadRouter);

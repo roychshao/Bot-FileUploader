@@ -12,7 +12,10 @@
   "author": "roychshao",
   "license": "ISC",
   "dependencies": {
+    "@api/gtidocs": "file:.api/apis/gtidocs",
+    "@api/virustotal": "file:.api/apis/virustotal",
     "archiver": "^7.0.1",
+    "axios": "^1.7.3",
     "discord-interactions": "^3.4.0",
     "discord.js": "^14.15.2",
     "dotenv": "^16.4.5",

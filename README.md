@@ -45,6 +45,7 @@ APP_ID=*****
 DISCORD_TOKEN=*****
 PUBLIC_KEY=*****
 CHANNEL_ID=*****
+VIRUSTOTAL_API_KEY=*****
 PORT=3000
 ```
 
@@ -53,26 +54,9 @@ secret-key file for google drive api
 serviceAccount-secret-key.json
 ```
 
-install clamav and clamav-daemon
-```zsh
-sudo apt-get update
-sudo apt-get install clamav clamav-daemon
-```
-
-start clamav-freshclam
-```zsh
-sudo service clamav-freshclam restart
-sudo service clamav-freshclam status
-```
-
-start clamav-daemon
-```zsh
-sudo service clamav-daemon start
-sudo service clamav-daemon status
-```
-
 npm install and run
 ```zsh
 npm install
+npx api install "@gtidocs/v1.0#4whvluqxhpj8"
 npm run dev
 ```
