@@ -1,6 +1,6 @@
 import { Client } from 'discord.js';
 import { deleteDriveFile } from '../drive/driveURL.js';
-import { deletePhysicalFile } from '../drive/utils.js';
+import { deletePhysicalFile } from '../utils/utils.js';
 
 /* TODO:
  * 1. 顯示fileUploader, semester, courseTitle, professor
@@ -54,7 +54,9 @@ export const sendReview = async (req, res) => {
             // delete the file on physical server. 
             deletePhysicalFile(filePath, compressedFileName, (err) => {
               if (err) {
-                console.error("Delete Physical File Error:", err);
+                console.error(err);
+              } else {
+                console.log("file moved to failed area.");
               }
             });
           }

@@ -3,7 +3,6 @@ serviceAccount-secret-key.json
 .env
 .api
 access.log
-scan.log
 /infected
-/drive/passedFiles
-/drive/failedFiles
+passedFiles
+failedFiles

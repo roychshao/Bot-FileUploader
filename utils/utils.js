@@ -1,7 +1,5 @@
-// import NodeClam from 'clamscan';
 import path from 'path';
 import fs from 'fs';
-import { fileURLToPath } from 'url';
 import util from 'util';
 import convert from 'heic-convert';
 import archiver from 'archiver';
@@ -11,10 +9,10 @@ import gtidocs from '@api/gtidocs';
  * create success/failed directory to store files.
  */
 const mkdir = util.promisify(fs.mkdir);
-mkdir('drive/passedFiles').catch(() => { });
-mkdir('drive/failedFiles').catch(() => { });
+mkdir('passedFiles').catch(() => { });
+mkdir('failedFiles').catch(() => { });
 
-const checkFileType = async (req) => {
+export const checkFileType = async (req) => {
   return new Promise(async (resolve, reject) => {
     req.files.forEach(async file => {
       if (file.mimetype !== 'application/pdf' &&
@@ -44,15 +42,13 @@ const checkFileType = async (req) => {
 /*
  * scan the zip file and create physical file simultaneuosly
  */
-const scanFile = async (req) => {
+export const scanFile = async (req) => {
   return new Promise(async (resolve, reject) => {
 
     const file = req.file;
-    const __filename = fileURLToPath(import.meta.url);
-    const __dirname = path.dirname(__filename);
     // TODO: categorize path by semester, courseTitle, professor
     const compressedFileName = new Date().toISOString() + '-' + file.originalname;
-    const tempFilePath = path.join(__dirname, 'passedFiles', compressedFileName);
+    const tempFilePath = path.join('passedFiles', compressedFileName);
 
     // create physical file
     fs.writeFile(tempFilePath, file.buffer, async (err) => {
@@ -83,7 +79,7 @@ const scanFile = async (req) => {
           await gtidocs.analysis({ id: id, 'x-apikey': process.env.VIRUSTOTAL_API_KEY }).then((data) => {
             status = data.data.data.attributes.status;
             stats = data.data.data.attributes.stats;
-            console.log(stats);
+            console.log("virustotal queueing... (10 sec a try)");
           }).catch((err) => {
             console.error("Error during analysis polling:", err);
           });
@@ -114,7 +110,7 @@ const scanFile = async (req) => {
 /*
  * compress multiple files in req.files and write the zip file in req.file
  */
-const compressFiles = async (req) => {
+export const compressFiles = async (req) => {
   return new Promise((resolve, reject) => {
     const archive = archiver('zip', {
       zlib: { level: 9 }
@@ -155,74 +151,10 @@ const compressFiles = async (req) => {
  * delete physical file
  */
 export const deletePhysicalFile = (filePath, fileName, callback) => {
-  fs.rename(filePath, './drive/failedFiles/' + fileName, (err) => {
+  fs.rename(filePath, './failedFiles/' + fileName, (err) => {
     if (err) {
       callback(err);
     }
     callback();
-  })
-}
-
-export const scanFileSVC = async (req, res, next) => {
-
-  await checkFileType(req).then(async () => {
-
-    // if some text is given, add a txt file into zip
-    if (req.body.text) {
-      let buffer = Buffer.from(req.body.text, 'utf-8');
-      let file = {
-        buffer: buffer,
-        originalname: 'manual.txt',
-        mimetype: 'text/plain'
-      };
-      req.files.push(file);
-    }
-
-    // if there are more than one files, compress it.
-    if (req.files.length > 1) {
-      if (req.body.zipName === undefined) {
-        throw {
-          status: 400,
-          message: 'zipName argument is missing.'
-        };
-      } else {
-        await compressFiles(req).catch(err => {
-          throw {
-            status: 500,
-            message: 'compress failed: ' + err.message
-          };
-        });
-        req.files = null;
-      }
-    } else {
-      req.file = req.files[0];
-      req.files = null;
-    }
-
-    // scan file
-    await scanFile(req).then((addons) => {
-      req.body.filePath = addons.filePath;
-      req.body.compressedFileName = addons.compressedFileName;
-      next();
-    })
-      .catch(err => {
-        if (err.message === 'file infected.') {
-          throw {
-            status: 403,
-            message: 'malicious/suspicious are scanned, the request is denied.'
-          };
-        } else {
-          throw {
-            status: 500,
-            message: err.message
-          };
-        }
-      })
-
-  }).catch((err) => {
-    res.status(err.status).send({
-      success: false,
-      message: err.message
-    });
   })
 }
